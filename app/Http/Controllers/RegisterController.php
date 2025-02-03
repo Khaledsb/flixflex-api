@@ -14,7 +14,7 @@ class RegisterController extends Controller
     {
         try {
             $data = $request->validated();
-
+            $data['password'] = bcrypt($data['password']);
             $user = User::create($data);
 
             return response()->json(['token' => $user->createToken('flixflex_api')->plainTextToken]);
