@@ -10,7 +10,9 @@
 ## About project
 
 create and update .env file
+
 add imdb api_key to .env
 
 composer install
+
 php artisan serve
