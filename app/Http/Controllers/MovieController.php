@@ -7,6 +7,7 @@ use App\Http\Requests\MovieSearchRequest;
 use App\Http\Requests\MovieShowRequest;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Http;
 
 class MovieController extends Controller
@@ -22,16 +23,55 @@ class MovieController extends Controller
         try {
             $data = $request->validated();
 
-            $movies = Http::get("https://api.themoviedb.org/3/movie/popular", [
-                'api_key' => env('TMDB_API_KEY'),
-                'page' => $data['page'],
-            ])->json();
+            // $movies = Http::get("https://api.themoviedb.org/3/movie/popular", [
+            //     'api_key' => env('TMDB_API_KEY'),
+            //     'page' => $data['page'],
+            // ])->json();
         
-            if (isset($movies['success']) && !$movies['success']) {
-                throw new Exception("Error: " . $movies['status_message']);
+            // if (isset($movies['success']) && !$movies['success']) {
+            //     throw new Exception("Error: " . $movies['status_message']);
+            // }
+
+            // return response()->json($movies['results']);
+            $page = max(1, (int) $data['page']); // Ensure page is at least 1
+            $perPage = 10; // Number of movies per page
+            $apiKey = env('TMDB_API_KEY'); // TMDb API Key
+    
+            $movies = [];  
+            $tmdbPage = 1;
+    
+            // Fetch enough pages from TMDb to fill the requested pagination
+            while (count($movies) < $page * $perPage) {
+                $response = Http::get("https://api.themoviedb.org/3/movie/popular", [
+                    'api_key' => $apiKey,
+                    'page' => $tmdbPage
+                ]);
+    
+                if ($response->failed()) {
+                    return response()->json(['error' => 'Failed to fetch movies'], 500);
+                }
+    
+                $data = $response->json();
+                $movies = array_merge($movies, $data['results']);
+    
+                if ($tmdbPage >= $data['total_pages']) {
+                    break; // Stop if no more pages exist in TMDb
+                }
+    
+                $tmdbPage++; // Go to the next TMDb page
             }
     
-            return response()->json($movies['results']);
+            // Paginate the movies manually
+            $totalMovies = count($movies);
+            $totalPages = ceil($totalMovies / $perPage);
+            $moviesPaginated = array_slice($movies, ($page - 1) * $perPage, $perPage);
+    
+            return response()->json([
+                'data' => $moviesPaginated,
+                'current_page' => $page,
+                'last_page' => $totalPages,
+                'total_movies' => $totalMovies,
+            ]);
         } catch (Exception $e) {
             return response()->json([
                 'message' => $e->getMessage()
@@ -56,7 +96,7 @@ class MovieController extends Controller
             if (isset($movie['success']) && !$movie['success']) {
                 throw new Exception($movie['status_message']);
             }
-    
+
             return response()->json($movie);
         } catch (Exception $e) {
             return response()->json([

@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class MovieListRequest extends FormRequest
+class StoreFavoriteRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,20 +22,8 @@ class MovieListRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'page' => 'required|integer',
+            'movie_id' => 'required|integer',
+            'type' => 'required|in:movie,series',
         ];
     }
-
-        /**
-     * Prepare the data for validation.
-     *
-     * @return void
-     */
-    protected function prepareForValidation()
-    {
-        $this->merge([
-            'page' => request()->query('page', 1),
-        ]);
-    }
-
 }
